@@ -1,0 +1,210 @@
+#include "filesystem.h"
+
+#include <whb/log.h>
+#include <whb/log_console.h>
+
+#include <cstring>
+
+const char* FileSystem::GetPhysfsError()
+{
+    return PHYSFS_getErrorByCode(PHYSFS_getLastErrorCode());
+}
+
+std::string FileSystem::Normalize(const std::string& input)
+{
+    std::string out;
+    bool seenSep = false, isSep = false;
+
+    for (size_t i = 0; i < input.size(); ++i)
+    {
+        isSep = (input[i] == '/');
+
+        if (!isSep || !seenSep)
+            out += input[i];
+
+        seenSep = isSep;
+    }
+
+    return out;
+}
+
+std::string FileSystem::GetSaveDirectory()
+{
+    return FileSystem::Normalize(FileSystem::GetUserDirectory() + "/save");
+}
+
+bool FileSystem::SetupWriteDirectory()
+{
+    if (!PHYSFS_isInit())
+        return false;
+
+    std::string savePath = FileSystem::GetSaveDirectory();
+    WHBLogPrintf("Save Path: %s", savePath.c_str());
+
+    std::string tmpWritePath = FileSystem::GetSaveDirectory();
+    WHBLogPrintf("Temp Write Path: %s", tmpWritePath.c_str());
+    std::string tmpDirectoryPath = FileSystem::GetSaveDirectory();
+    WHBLogPrintf("Temp Dir Path: %s", tmpWritePath.c_str());
+
+    if (savePath.find(FileSystem::GetUserDirectory()) == 0)
+    {
+        tmpWritePath     = FileSystem::GetUserDirectory();
+        tmpDirectoryPath = savePath.substr(FileSystem::GetUserDirectory().length());
+
+        /* strip leading '/' characters from the path we want to create */
+        size_t startPosition = tmpDirectoryPath.find_first_not_of('/');
+
+        if (startPosition != std::string::npos)
+            tmpDirectoryPath = tmpDirectoryPath.substr(startPosition);
+        WHBLogPrintf("Temp Dir Path Fixed: %s", tmpDirectoryPath.c_str());
+    }
+
+    if (!PHYSFS_setWriteDir(tmpWritePath.c_str()))
+    {
+        WHBLogPrintf("Failed to set write dir to %s", tmpWritePath.c_str());
+        return false;
+    }
+
+    if (!FileSystem::CreateDirectory(tmpDirectoryPath.c_str()))
+    {
+        WHBLogPrintf("Failed to create dir %s", tmpWritePath.c_str());
+        /* clear the write directory in case of error */
+        PHYSFS_setWriteDir(nullptr);
+        return false;
+    }
+
+    if (!PHYSFS_setWriteDir(savePath.c_str()))
+    {
+        WHBLogPrintf("Failed to set write dir to %s", savePath.c_str());
+        return false;
+    }
+
+    if (!PHYSFS_mount(savePath.c_str(), nullptr, 0))
+    {
+        WHBLogPrintf("Failed to mount write dir (%s)", FileSystem::GetPhysfsError());
+        /* clear the write directory in case of error */
+        PHYSFS_setWriteDir(nullptr);
+        return false;
+    }
+
+    return true;
+}
+
+std::string FileSystem::GetUserDirectory()
+{
+    return FileSystem::Normalize(PHYSFS_getUserDir());
+}
+
+bool FileSystem::OpenFile(File& file, const char* name, FileMode mode)
+{
+    if (mode == FileMode_Closed)
+        return false;
+
+    if (!PHYSFS_isInit())
+        return false;
+
+    if (mode == FileMode_Read && !PHYSFS_exists(name))
+    {
+        WHBLogPrintf("Could not open file %s, does not exist.", name);
+        return false;
+    }
+
+    if ((mode == FileMode_Write) &&
+        (PHYSFS_getWriteDir() == nullptr && FileSystem::SetupWriteDirectory()))
+    {
+        WHBLogPrintf("Could not set write directory.");
+        return false;
+    }
+
+    PHYSFS_getLastErrorCode();
+
+    if (file.handle)
+        FileSystem::CloseFile(file);
+
+    switch (mode)
+    {
+        case FileMode_Read:
+            file.handle = PHYSFS_openRead(name);
+            break;
+        case FileMode_Write:
+            file.handle = PHYSFS_openWrite(name);
+            break;
+        default:
+            break;
+    }
+
+    if (!file.handle)
+    {
+        const char* error = FileSystem::GetPhysfsError();
+
+        if (error == nullptr)
+            error = "unknown error";
+
+        WHBLogPrintf("Could not open file %s (%s)\n", name, error);
+
+        return false;
+    }
+
+    file.mode = mode;
+
+    return true;
+}
+
+bool FileSystem::CloseFile(File& file)
+{
+    if (file.handle == nullptr || !PHYSFS_close(file.handle))
+        return false;
+
+    file.handle = nullptr;
+
+    return true;
+}
+
+bool FileSystem::CreateDirectory(const char* name)
+{
+    if (!PHYSFS_isInit())
+        return false;
+
+    if (PHYSFS_getWriteDir() == nullptr && !FileSystem::SetupWriteDirectory())
+        return false;
+
+    if (!PHYSFS_mkdir(name))
+        return false;
+
+    return true;
+}
+
+int64_t FileSystem::ReadFile(File& file, void* destination, int64_t size)
+{
+    if (!file.handle || file.mode != FileMode_Read)
+    {
+        WHBLogPrintf("File is not opened for reading.\n");
+        return 0;
+    }
+
+    if (size > file.GetSize())
+        size = file.GetSize();
+    else if (size < 0)
+    {
+        WHBLogPrintf("Invalid read size %l.\n", size);
+        return 0;
+    }
+
+    return PHYSFS_readBytes(file.handle, destination, (PHYSFS_uint64)size);
+}
+
+bool FileSystem::WriteFile(File& file, const void* data, int64_t size)
+{
+    if (!file.handle || file.mode != FileMode_Write)
+    {
+        WHBLogPrintf("File is not opened for writing.\n");
+        return false;
+    }
+
+    int64_t written = PHYSFS_writeBytes(file.handle, data, (PHYSFS_uint64)size);
+
+    if (written != size)
+        return false;
+
+    return true;
+}

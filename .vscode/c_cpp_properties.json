@@ -1,0 +1,21 @@
+{
+  "configurations": [
+    {
+      "name": "Wii U",
+      "includePath": [
+        "${workspaceFolder}/include/**",
+        "${env:DEVKITPRO}/portlibs/wiiu/**",
+        "${env:DEVKITPRO}/powerpc-eabi/include/**",
+        "${env:DEVKITPRO}/devkitPPC/lib/gcc/powerpc-eabi/**"
+      ],
+      "defines": ["_DEBUG", "UNICODE", "_UNICODE"],
+      "compilerPath": "${env:DEVKITPRO}/devkitPPC/bin/powerpc-eabi-gcc",
+      "windowsSdkVersion": "10.0.19041.0",
+      "cStandard": "c17",
+      "cppStandard": "c++17",
+      "intelliSenseMode": "linux-gcc-x86",
+      "configurationProvider": "ms-vscode.makefile-tools"
+    }
+  ],
+  "version": 4
+}
