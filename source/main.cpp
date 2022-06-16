@@ -23,6 +23,8 @@ int main(int argc, char** argv)
     if (!PHYSFS_init(NULL))
         WHBLogPrintf("physfs failure: %s!", FileSystem::GetPhysfsError());
 
+    FileSystem::SetIdentity("game", true);
+
     /* create a directory */
     bool success = FileSystem::CreateDirectory("WEEYOU");
     WHBLogPrintf("Directory Created: %d", success);
@@ -35,7 +37,8 @@ int main(int argc, char** argv)
     size_t length       = strlen(message);
 
     FileSystem::WriteFile(file, message, length);
-    FileSystem::CloseFile(file);
+    success = FileSystem::CloseFile(file);
+    WHBLogPrintf("File Closed: %d", success);
 
     /* open our file for reading */
     FileSystem::OpenFile(file, "ambulance.txt", FileSystem::FileMode_Read);

@@ -34,6 +34,12 @@ namespace FileSystem
         }
     };
 
+    bool SetSource(const char* source);
+
+    bool SetIdentity(const char* name, bool append);
+
+    static std::string savePath;
+
     /* gets the last physfs error */
     const char* GetPhysfsError();
 
