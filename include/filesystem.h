@@ -34,8 +34,16 @@ namespace FileSystem
         }
     };
 
+    /*
+    ** mounts a specific directory for physfs to search in
+    ** this is typically a main directory
+    */
     bool SetSource(const char* source);
 
+    /*
+    ** mounts a specific directory as a "save" directory
+    ** if appended, it will be added to the search path
+    */
     bool SetIdentity(const char* name, bool append);
 
     static std::string savePath;
