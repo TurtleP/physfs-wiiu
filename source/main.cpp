@@ -1,5 +1,6 @@
 #include <coreinit/thread.h>
 #include <coreinit/time.h>
+#include <vpad/input.h>
 
 #include <whb/log.h>
 #include <whb/log_cafe.h>
@@ -17,6 +18,8 @@ int main(int argc, char** argv)
     WHBProcInit();
     WHBLogCafeInit();
     WHBLogUdpInit();
+
+    VPADInit();
 
     WHBLogConsoleInit();
 
@@ -48,8 +51,16 @@ int main(int argc, char** argv)
     FileSystem::ReadFile(file, buffer, file.GetSize());
     WHBLogPrintf("File Contents: %s", buffer);
 
+    VPADStatus status;
+    VPADReadError error;
+
     while (WHBProcIsRunning())
     {
+        VPADRead(VPAD_CHAN_0, &status, 1, &error);
+
+        if (status.trigger & VPAD_BUTTON_PLUS)
+            break;
+
         WHBLogConsoleDraw();
         OSSleepTicks(OSMillisecondsToTicks(100));
     }
