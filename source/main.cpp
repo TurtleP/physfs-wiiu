@@ -1,6 +1,6 @@
 #include <coreinit/thread.h>
 #include <coreinit/time.h>
-#include <vpad/input.h>
+#include <sysapp/launch.h>
 
 #include <whb/log.h>
 #include <whb/log_cafe.h>
@@ -8,10 +8,56 @@
 #include <whb/log_udp.h>
 #include <whb/proc.h>
 
+#include <vpad/input.h>
+
 #include "filesystem.h"
 
 #include <string.h>
 #include <unistd.h>
+
+#include <string>
+#include <vector>
+
+static void listDirItems(const char* directory)
+{
+    std::vector<std::string> items;
+    FileSystem::GetDirectoryItems(directory, items);
+
+    WHBLogPrintf("Directory listing of %s", directory);
+    for (const auto& filename : items)
+        WHBLogPrintf("  -> %s", filename);
+}
+
+static const char* getInfoType(const FileSystem::Info& info)
+{
+    switch (info.type)
+    {
+        case FileSystem::FileType_File:
+            return "file";
+        case FileSystem::FileType_Directory:
+            return "directory";
+        case FileSystem::FileType_SymLink:
+            return "symlink";
+        case FileSystem::FileType_Other:
+            return "other";
+        default:
+            return "";
+    }
+}
+
+static void getInfo(const char* filepath)
+{
+    FileSystem::Info info;
+
+    bool success = FileSystem::GetInfo(filepath, info);
+
+    WHBLogPrintf("File Info of %s", filepath);
+
+    if (success)
+        WHBLogPrintf("  FileType: %s\n  File Size: %zu", getInfoType(info), info.size);
+    else
+        WHBLogPrintf("  Failed to get info for %s!", filepath);
+}
 
 int main(int argc, char** argv)
 {
@@ -59,7 +105,13 @@ int main(int argc, char** argv)
         VPADRead(VPAD_CHAN_0, &status, 1, &error);
 
         if (status.trigger & VPAD_BUTTON_PLUS)
-            break;
+            SYSLaunchMenu();
+        else if (status.trigger & VPAD_BUTTON_A)
+            listDirItems("");
+        else if (status.trigger & VPAD_BUTTON_B)
+            getInfo("ambulance.txt");
+        else if (status.trigger & VPAD_BUTTON_X)
+            getInfo("WEEYOU");
 
         WHBLogConsoleDraw();
         OSSleepTicks(OSMillisecondsToTicks(100));

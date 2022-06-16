@@ -125,6 +125,47 @@ std::string FileSystem::GetUserDirectory()
     return FileSystem::Normalize(PHYSFS_getUserDir());
 }
 
+bool FileSystem::GetInfo(const char* filename, FileSystem::Info& info)
+{
+    if (!PHYSFS_isInit())
+        return false;
+
+    PHYSFS_Stat stat = {};
+
+    if (!PHYSFS_stat(filename, &stat))
+        return false;
+
+    info.mod_time = std::min<int64_t>(stat.modtime, FileSystem::MAX_STAMP);
+    info.size     = std::min<int64_t>(stat.filesize, FileSystem::MAX_STAMP);
+
+    if (stat.filetype == PHYSFS_FILETYPE_REGULAR)
+        info.type = FileSystem::FileType_File;
+    else if (stat.filetype == PHYSFS_FILETYPE_DIRECTORY)
+        info.type = FileSystem::FileType_Directory;
+    else if (stat.filetype == PHYSFS_FILETYPE_SYMLINK)
+        info.type = FileSystem::FileType_SymLink;
+    else
+        info.type = FileSystem::FileType_Other;
+
+    return true;
+}
+
+void FileSystem::GetDirectoryItems(const char* path, std::vector<std::string>& items)
+{
+    if (!PHYSFS_isInit())
+        return;
+
+    char** results = PHYSFS_enumerateFiles(path);
+
+    if (results == nullptr)
+        return;
+
+    for (char** item = results; *item != 0; item++)
+        items.push_back(*item);
+
+    PHYSFS_freeList(results);
+}
+
 bool FileSystem::OpenFile(File& file, const char* name, FileMode mode)
 {
     if (mode == FileMode_Closed)
