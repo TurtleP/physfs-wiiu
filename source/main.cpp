@@ -25,7 +25,7 @@ static void listDirItems(const char* directory)
 
     WHBLogPrintf("Directory listing of %s", directory);
     for (const auto& filename : items)
-        WHBLogPrintf("  -> %s", filename);
+        WHBLogPrintf("  -> %s", filename.c_str());
 }
 
 static const char* getInfoType(const FileSystem::Info& info)
@@ -54,7 +54,10 @@ static void getInfo(const char* filepath)
     WHBLogPrintf("File Info of %s", filepath);
 
     if (success)
-        WHBLogPrintf("  FileType: %s\n  File Size: %zu", getInfoType(info), info.size);
+    {
+        WHBLogPrintf("  FileType: %s", getInfoType(info));
+        WHBLogPrintf("  File Size: %lld", info.size);
+    }
     else
         WHBLogPrintf("  Failed to get info for %s!", filepath);
 }
@@ -72,6 +75,7 @@ int main(int argc, char** argv)
     if (!PHYSFS_init(NULL))
         WHBLogPrintf("physfs failure: %s!", FileSystem::GetPhysfsError());
 
+    FileSystem::SetSource("game");
     FileSystem::SetIdentity("game", true);
 
     /* create a directory */

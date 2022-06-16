@@ -52,6 +52,8 @@ namespace FileSystem
         FileType type;
     };
 
+    void Initialize();
+
     /*
     ** mounts a specific directory for physfs to search in
     ** this is typically a main directory

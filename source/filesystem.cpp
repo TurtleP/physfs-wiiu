@@ -28,13 +28,18 @@ std::string FileSystem::Normalize(const std::string& input)
     return out;
 }
 
+void FileSystem::Initialize()
+{
+    FileSystem::savePath = "";
+}
+
 bool FileSystem::SetSource(const char* source)
 {
     if (!PHYSFS_isInit())
         return false;
 
     std::string searchPath = source;
-    if (!PHYSFS_mount(searchPath.c_str(), nullptr, 1))
+    if (!PHYSFS_mount(searchPath.c_str(), NULL, 1))
         return false;
 
     return true;
@@ -49,10 +54,11 @@ bool FileSystem::SetIdentity(const char* name, bool append)
 
     FileSystem::savePath = FileSystem::Normalize(FileSystem::GetUserDirectory() + "/save/" + name);
     WHBLogPrintf("Save Path %s", savePath.c_str());
+
     if (!old.empty())
         PHYSFS_unmount(old.c_str());
 
-    int success = PHYSFS_mount(savePath.c_str(), nullptr, append);
+    int success = PHYSFS_mount(savePath.c_str(), NULL, append);
     WHBLogPrintf("Save Path mounted %d", success);
 
     PHYSFS_setWriteDir(nullptr);
