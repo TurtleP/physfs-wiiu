@@ -94,8 +94,10 @@ int main(int argc, char** argv)
     char buffer[file.GetSize()];
 
     /* read the file contents and print them */
-    FileSystem::ReadFile(file, buffer, file.GetSize());
-    WHBLogPrintf("File Contents: %s", buffer);
+    int64_t size = FileSystem::ReadFile(file, buffer, file.GetSize());
+
+    if (size != 0)
+        WHBLogPrintf("File Contents: %s", buffer);
 
     VPADStatus status;
     VPADReadError error;
